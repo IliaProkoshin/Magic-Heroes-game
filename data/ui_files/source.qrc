@@ -1,0 +1,16 @@
+<RCC>
+  <qresource prefix="barbarian">
+    <file>barbarian.jpg</file>
+  </qresource>
+  <qresource prefix="newPrefix">
+    <file>thief.jpg</file>
+    <file>knight.jpg</file>
+    <file>barbarian.jpg</file>
+  </qresource>
+  <qresource prefix="knight">
+    <file>knight.jpg</file>
+  </qresource>
+  <qresource prefix="thief">
+    <file>thief.jpg</file>
+  </qresource>
+</RCC>
