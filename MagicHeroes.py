@@ -8,6 +8,16 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush
 from PyQt5.QtCore import QSize
 
+"""
+Импорт модуля генератора карт
+"""
+import mapgen
+
+
+"""
+Устаревший код генерации карт
+"""
+
 def map_generation():
     """
     Генератор карт комнат для игры. Возращает двумерный массив из символов.
@@ -15,9 +25,8 @@ def map_generation():
     movable = '1245678'
     all_objects = '000000000000000+-11224567889.'
     void = '0'
-    Y_size = random.randint(4, 10)
-    Y_size = 10
-    X_size = random.randint(4, 19)
+    Y_size = random.randint(20, 50)
+    X_size = random.randint(20, 50)
     field = [["." for t in range(X_size)] for i in range(Y_size)]
     Y_hero = random.randint(1, Y_size - 2)
     X_hero = random.randint(1, X_size - 2)
@@ -117,7 +126,7 @@ class SettingsWindow(QMainWindow):
         super().__init__()
         uic.loadUi('data/ui_files/settings.ui', self)
         self.setWindowIcon(QIcon('data/logo.png'))
-        background = QImage('data/ui_files/background.jpg')
+        background = QImage('data/ui_files/background_settings.jpg')
         background_scaled = background.scaled(QSize(800, 600))
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(background_scaled))
@@ -175,12 +184,15 @@ class Board:
                  health_path='data/others/health.png',
                  armor_ui_path='data/others/armor.png',
                  blade_path='data/others/blade.png',
-                 size=60, skip=5):
+                 size=60, skip=0):
         """
         Инициализация основного класса игры, подгрузка необходимой графики.
         """
         global persona
-        self.all_map = map_generation()
+        self.lv = 0
+        self.seed = random.choice(["alpha", "beta", "charlie", "delta"]) + "-" + str(random.randint(1, 88888888))
+        self.map_size = [10,40]
+        self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
         self.stroka = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.texture = load_image(texture_path)
         self.void = load_image(void_path)
@@ -204,7 +216,7 @@ class Board:
         self.size = size
         self.skip = skip
         self.font = pygame.font.SysFont("bahnschrift", 32)
-        self.output = self.font.render("", 1, (0, 0, 0))
+        self.output = self.font.render("", 1, (0xff, 0xff, 0xff))
         self.lenY = len(self.all_map)
         self.lenX = 0
         for x in self.all_map:
@@ -229,12 +241,50 @@ class Board:
         Функция служит для отображения текущего состояния поля на экране.
         """
         global persona, now_hp, max_hp, damage, armor, name, score
+
+        PX = screen_size[0] // 2
+        PY = screen_size[1] // 2
+        X = self.skip
+        Y = 800 - self.lenY * (self.size + self.skip)        
+        for a in range(self.lenY):
+            for b in range(self.lenX):
+                APX = (-self.playerX + b) * self.size
+                APY = (-self.playerY + a) * self.size
+                if self.all_map[a][b] in "0*":
+                    screen.blit(self.texture, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "-":
+                    screen.blit(self.void, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "+":
+                    screen.blit(self.ruins, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] in "458":
+                    screen.blit(self.potion, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "9":
+                    screen.blit(self.artefact, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "1":
+                    screen.blit(self.goblin, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "2":
+                    screen.blit(self.skeleton, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "3":
+                    pass  # Резерв для дополнительного монстра
+                elif self.all_map[a][b] == "7":
+                    screen.blit(self.ambrosia, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "6":
+                    screen.blit(self.armor, (PX + APX, PY + APY, self.size, self.size))
+                elif self.all_map[a][b] == "?":
+                    screen.blit(self.door,
+                                (PX + APX, PY + APY, self.size, self.size))
+                if a == self.playerY and b == self.playerX:
+                    screen.blit(self.game_model,
+                                (PX, PY, self.size, self.size))
+                X += self.size + self.skip
+            X = self.skip
+            Y += self.size + self.skip
         text = self.font.render(str(now_hp) + '/' +
-                           str(max_hp), 1, (0, 0, 0))
+                           str(max_hp), 1, (0xff, 0xff, 0xff))
         screen.blit(text, (60, 8))
-        text = self.font.render(str(armor), 1, (0, 0, 0))
+        text = self.font.render(str(armor), 1, (0xff, 0xff, 0xff))
         screen.blit(text, (240, 8))
-        text = self.font.render(str(damage), 1, (0, 0, 0))
+        text = self.font.render(str(damage), 1, (0xff, 0xff, 0xff))
         screen.blit(text, (350, 8))
         if persona == 1:
             output = str(name) + ", варвар"
@@ -242,47 +292,15 @@ class Board:
             output = str(name) + ", рыцарь"
         elif persona == 3:
             output = str(name) + ", плут"
-        text = self.font.render(output, 1, (0, 0, 0))
+        text = self.font.render(output, 1, (0xff, 0xff, 0xff))
         screen.blit(text, (420, 8))
-        text = self.font.render(str(score), 1, (0, 0, 0))
+        text = self.font.render(str(score), 1, (0xff, 0xff, 0xff))
         screen.blit(text, (1100, 8))
-        X = self.skip
-        Y = 800 - self.lenY * (self.size + self.skip)
+
         screen.blit(self.health_heart, (10, 10, self.size, self.size))
         screen.blit(self.armor_ui, (190, 10, self.size, self.size))
         screen.blit(self.blade, (295, 10, self.size, self.size))
-        screen.blit(self.output, (15, 100))
-        for a in range(self.lenY):
-            for b in range(self.lenX):
-                if self.all_map[a][b] in "0*":
-                    screen.blit(self.texture, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "-":
-                    screen.blit(self.void, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "+":
-                    screen.blit(self.ruins, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] in "458":
-                    screen.blit(self.potion, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "9":
-                    screen.blit(self.artefact, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "1":
-                    screen.blit(self.goblin, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "2":
-                    screen.blit(self.skeleton, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "3":
-                    pass  # Резерв для дополнительного монстра
-                elif self.all_map[a][b] == "7":
-                    screen.blit(self.ambrosia, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "6":
-                    screen.blit(self.armor, (X, Y, self.size, self.size))
-                elif self.all_map[a][b] == "?":
-                    screen.blit(self.door,
-                                (X, Y, self.size, self.size))
-                if a == self.playerY and b == self.playerX:
-                    screen.blit(self.game_model,
-                                (X, Y, self.size, self.size))
-                X += self.size + self.skip
-            X = self.skip
-            Y += self.size + self.skip
+        screen.blit(self.output, (15, 48 + 8))
 
     def move_hero(self, screen, side):
         """
@@ -292,7 +310,7 @@ class Board:
         global persona, now_hp, max_hp, damage, armor, name, score
         global counter, now_counter, screen_size
         font = pygame.font.SysFont("bahnschrift", 24)
-        text = font.render("", 1, (0, 0, 0))
+        text = font.render("", 1, (0xff, 0xff, 0xff))
         Y = self.playerY
         X = self.playerX
         try_Y = Y
@@ -334,7 +352,7 @@ class Board:
                 mobTY = 1
                 text = font.render(
                     "Вы сразились с гоблином!",
-                    1, (0, 0, 0))
+                    1, (0xff, 0xff, 0xff))
             elif field_point == "2":
                 mobHP = 32 + random.randint(-4, 7) + now_counter * 3
                 mobAT = 10 + random.randint(-2, 5) + now_counter * 2
@@ -342,7 +360,7 @@ class Board:
                 mobTY = 2
                 text = font.render(
                     "Вы сразились со скелетом!",
-                    1, (0, 0, 0))
+                    1, (0xff, 0xff, 0xff))
             battle_result = battle(
                 now_hp, mobHP, damage, armor, mobAT, mobDF, mobTY)
             now_hp = battle_result[0]
@@ -367,7 +385,7 @@ class Board:
                 now_hp = max_hp
             text = font.render(
                 "Применено зелье регенерации (+30 к текущему здоровью)",
-                1, (0, 0, 0))
+                1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -379,7 +397,7 @@ class Board:
             damage += 1
             text = font.render(
                 "Применено зелье силы (+1 к урону по противникам)",
-                1, (0, 0, 0))
+                1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -393,7 +411,7 @@ class Board:
             text = font.render(
                 "Употреблена амброзия (+5 к максимальному здоровью,"
                 + " полное восстановление текущего здоровья)",
-                1, (0, 0, 0))
+                1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -404,7 +422,7 @@ class Board:
         elif field_point == "6":
             armor += 1
             text = font.render(
-                "Получено улучшение доспеха (+1 к броне)", 1, (0, 0, 0))
+                "Получено улучшение доспеха (+1 к броне)", 1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -413,7 +431,7 @@ class Board:
             now_hp -= 30
             text = font.render(
                 "Применено зелье отравления (-30 к текущему здоровью)",
-                1, (0, 0, 0))
+                1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -424,7 +442,7 @@ class Board:
             text = font.render(
                 "Найдено сокровище! (+10 к максимальному"
                 + " здоровью, +1 к параметрам)",
-                1, (0, 0, 0))
+                1, (0xff, 0xff, 0xff))
             self.all_map[try_Y][try_X] = "0"
             self.playerY = try_Y
             self.playerX = try_X
@@ -458,11 +476,12 @@ class Board:
         Функция вызывается при необходимости сменить карту при переходе в
         другую комнату.
         """
-        self.all_map = map_generation()
+        self.lv += 1
+        self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
         self.stroka = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.size = size
         self.skip = skip
-        self.output = self.font.render("", 1, (0, 0, 0))
+        self.output = self.font.render("", 1, (0xff, 0xff, 0xff))
         self.lenY = len(self.all_map)
         self.lenX = 0
         for x in self.all_map:
