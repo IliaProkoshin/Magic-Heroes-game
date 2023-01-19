@@ -7,16 +7,10 @@ from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QIcon, QImage, QPalette, QBrush
 from PyQt5.QtCore import QSize
-
 """
 Импорт модуля генератора карт
 """
 import mapgen
-
-
-"""
-Устаревший код генерации карт
-"""
 
 def map_generation():
     """
@@ -192,7 +186,11 @@ class Board:
         self.lv = 0
         self.seed = random.choice(["alpha", "beta", "charlie", "delta"]) + "-" + str(random.randint(1, 88888888))
         self.map_size = [10,40]
-        self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
+        randomizer = random.randint(0, 1)
+        if randomizer:
+            self.all_map = map_generation()
+        else:
+            self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
         self.stroka = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.texture = load_image(texture_path)
         self.void = load_image(void_path)
@@ -241,7 +239,6 @@ class Board:
         Функция служит для отображения текущего состояния поля на экране.
         """
         global persona, now_hp, max_hp, damage, armor, name, score
-
         PX = screen_size[0] // 2
         PY = screen_size[1] // 2
         X = self.skip
@@ -296,11 +293,11 @@ class Board:
         screen.blit(text, (420, 8))
         text = self.font.render(str(score), 1, (0xff, 0xff, 0xff))
         screen.blit(text, (1100, 8))
-
         screen.blit(self.health_heart, (10, 10, self.size, self.size))
         screen.blit(self.armor_ui, (190, 10, self.size, self.size))
         screen.blit(self.blade, (295, 10, self.size, self.size))
         screen.blit(self.output, (15, 48 + 8))
+
 
     def move_hero(self, screen, side):
         """
@@ -457,6 +454,14 @@ class Board:
                 score += 100
             now_counter += 1
             if now_counter == counter:
+                with open("runs.txt", "a") as myfile:
+                    if persona == 1:
+                        addtext = 'варвар'
+                    elif persona == 2:
+                        addtext = 'рыцарь'
+                    else:
+                        addtext = 'плут'
+                    myfile.write(f"{name}, {addtext} - счёт {score}.")
                 win_screen(screen)
                 pygame.display.quit()
                 pygame.quit()
@@ -477,7 +482,11 @@ class Board:
         другую комнату.
         """
         self.lv += 1
-        self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
+        randomizer = random.randint(0, 1)
+        if randomizer:
+            self.all_map = map_generation()
+        else:
+            self.all_map = mapgen.mapgen(self.seed, self.lv, self.map_size)
         self.stroka = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         self.size = size
         self.skip = skip

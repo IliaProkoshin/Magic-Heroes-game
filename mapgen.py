@@ -100,8 +100,15 @@ def mapgen(preseed="",map_iter=0,mapsize=[5,10]):
 			for j in range(0,mx):
 				res[i][j] = "0"
 		for j in range(0,mx):
-			if random.randint(0,100) < random.randint(0,30):
-				res[i][j] = "0"
+			if(len(roads) < 10):
+				for i in range(-5, 5):
+					for j in range(-5, 5):
+						if (rsx + j > mx - 1 or
+						    rsy + i > my - 1 or
+						    rsx + j < 0 or
+						    rsy + i < 0):
+							continue
+						roads.append((rsx + j, rsy + i))
 	for j in range(0,mx):
 		if random.randint(0,100) < random.randint(0,30):
 			for i in range(0,mx):
