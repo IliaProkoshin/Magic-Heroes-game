@@ -320,8 +320,8 @@ p, li { white-space: pre-wrap; }
    <widget class="QPushButton" name="start_but">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>555</y>
+      <x>630</x>
+      <y>560</y>
       <width>151</width>
       <height>31</height>
      </rect>
@@ -334,6 +334,45 @@ p, li { white-space: pre-wrap; }
     </property>
     <property name="text">
      <string>Начать</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>560</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Рекорд:</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="linia">
+    <property name="geometry">
+     <rect>
+      <x>102</x>
+      <y>560</y>
+      <width>521</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+    </property>
+    <property name="readOnly">
+     <bool>true</bool>
     </property>
    </widget>
   </widget>

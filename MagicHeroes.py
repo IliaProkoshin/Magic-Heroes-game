@@ -12,6 +12,50 @@ from PyQt5.QtCore import QSize
 """
 import mapgen
 
+
+def load_image(name, color_key=None):
+    """
+    Функция возвращает изображение при получении пути к нему. Она
+    может заменить монотонный фон на прозрачный при передаче
+    color_key=-1
+    """
+    try:
+        image = pygame.image.load(name)
+    except pygame.error as message:
+        print('Не удаётся загрузить:', name)
+        raise SystemExit(message)
+    image = image.convert_alpha()
+    if color_key:
+        if color_key == -1:
+            color_key = image.get_at((0, 0))
+        image.set_colorkey(color_key)
+    return image
+
+
+class Blader(pygame.sprite.Sprite):
+    def __init__(self, group, number):
+        image_1 = load_image("data/others/anim_blade1.png")
+        image_2 = load_image("data/others/anim_blade2.png")
+        super().__init__(group)
+        if number == 1:
+            self.image = image_1
+        else:
+            self.image = image_2
+        self.rect = self.image.get_rect()
+        if number == 1:
+            self.rect.x = 189
+            self.rect.y = 50
+        else:
+            self.rect.x = 940
+            self.rect.y = 50
+        self.number = number
+
+    def update(self, *args):
+        if self.number == 1:
+            self.rect = self.rect.move(4, 0)
+        else:
+            self.rect = self.rect.move(-4, 0)
+
 def map_generation():
     """
     Генератор карт комнат для игры. Возращает двумерный массив из символов.
@@ -124,10 +168,28 @@ class SettingsWindow(QMainWindow):
         background_scaled = background.scaled(QSize(800, 600))
         palette = QPalette()
         palette.setBrush(QPalette.Window, QBrush(background_scaled))
-        self.setPalette(palette)        
+        self.setPalette(palette)
         self.start_but.clicked.connect(self.start_game)
         self.person = 2
         self.hero_switch.buttonClicked.connect(self.switcher)
+        file = open("runs.txt", "r")
+        spisok = []
+        for x in file:
+            element = x.rstrip("\n")
+            element = element[0:len(element) - 1]
+            number = ""
+            for i in range(-1, -len(element), -1):
+                if element[i] in "0123456789":
+                    number = number + element[i]
+            try:
+                spisok.append([x.rstrip("\n"), int(number[::-1])])
+            except ValueError:
+                pass
+        if spisok:
+            spisok.sort(key=lambda x: x[1])
+            self.linia.setText(spisok[-1][0])
+        else:
+            self.linia.setText("Нет")
 
     def start_game(self):
         """
@@ -306,6 +368,13 @@ class Board:
         """
         global persona, now_hp, max_hp, damage, armor, name, score
         global counter, now_counter, screen_size
+        if persona == 1:
+            addtext = 'варвар'
+        elif persona == 2:
+            addtext = 'рыцарь'
+        else:
+            addtext = 'плут'
+        output = f"{name}, {addtext} - счёт {score}."
         font = pygame.font.SysFont("bahnschrift", 24)
         text = font.render("", 1, (0xff, 0xff, 0xff))
         Y = self.playerY
@@ -337,7 +406,7 @@ class Board:
                 now_hp = 0
                 self.playerY = try_Y
                 self.playerX = try_X
-                death_screen(screen)
+                death_screen(screen, output)
                 pygame.display.quit()
                 pygame.quit()
                 sys.exit()
@@ -372,7 +441,7 @@ class Board:
                 self.playerX = try_X
                 self.all_map[self.playerY][self.playerX] = "0"
             else:
-                death_screen(screen)
+                death_screen(screen, output)
                 pygame.display.quit()
                 pygame.quit()
                 sys.exit()                
@@ -461,8 +530,8 @@ class Board:
                         addtext = 'рыцарь'
                     else:
                         addtext = 'плут'
-                    myfile.write(f"{name}, {addtext} - счёт {score}.")
-                win_screen(screen)
+                    myfile.write(f"{name}, {addtext} - счёт {score}.\n")
+                win_screen(screen, output)
                 pygame.display.quit()
                 pygame.quit()
                 sys.exit()                
@@ -470,7 +539,7 @@ class Board:
         elif field_point == ".":
             return
         if now_hp <= 0:
-            death_screen(screen)
+            death_screen(screen, output)
             pygame.display.quit()
             pygame.quit()
             sys.exit()
@@ -518,25 +587,6 @@ def stop_running():
     sys.exit()
 
 
-def load_image(name, color_key=None):
-    """
-    Функция возвращает изображение при получении пути к нему. Она
-    может заменить монотонный фон на прозрачный при передаче
-    color_key=-1
-    """
-    try:
-        image = pygame.image.load(name)
-    except pygame.error as message:
-        print('Не удаётся загрузить:', name)
-        raise SystemExit(message)
-    image = image.convert_alpha()
-    if color_key:
-        if color_key == -1:
-            color_key = image.get_at((0, 0))
-        image.set_colorkey(color_key)
-    return image
-
-
 def start_screen(screen_size):
     """
     Функция отвечает за отображение стартового окна игры.
@@ -546,7 +596,16 @@ def start_screen(screen_size):
         'data/background.jpg'), screen_size)
     screen.blit(background, (0, 0))
     start_screen = True
+    all_sprites = pygame.sprite.Group()
+    Blader(all_sprites, 1)
+    Blader(all_sprites, 2)
+    booler = 0
+    boofer = 0
+    texture = load_image("data/others/megalogo.png")
     while start_screen:
+        screen.blit(background, (0, 0))
+        if booler:
+            screen.blit(texture, (boofer, 50))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 start_screen = False
@@ -559,17 +618,31 @@ def start_screen(screen_size):
                 break
         if not start_screen:
             break
+        all_sprites.draw(screen)
+        all_sprites.update()
+        rects = []
+        for x in all_sprites:
+            rects.append(x.rect.x)
+        if rects:
+            if rects[0] + 151 >= rects[1]:
+                all_sprites = pygame.sprite.Group()
+                screen.blit(texture, (rects[0] + 80, 50))
+                booler = 1
+                boofer = rects[0] + 80
         pygame.display.flip()
         clock.tick(FPS)
 
 
-def death_screen(screen):
+def death_screen(screen, output):
     """
     Функция отвечает за отображение окна смерти в случае проигрыша.
     """
     background = load_image('data/dead.png')
     screen.blit(background, (0, 0))
     death_screen = True
+    font = pygame.font.SysFont("bahnschrift", 24)
+    text = font.render(output, 1, (0xff, 0xff, 0xff))
+    screen.blit(text, (30, 750))
     while start_screen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -589,13 +662,16 @@ def death_screen(screen):
         clock.tick(FPS)
 
 
-def win_screen(screen):
+def win_screen(screen, output):
     """
     Функция отвечает за отображение окна при победе игрока.
     """
     background = load_image('data/win.jpg')
     screen.blit(background, (0, 0))
     death_screen = True
+    font = pygame.font.SysFont("bahnschrift", 24)
+    text = font.render(output, 1, (0xff, 0xff, 0xff))
+    screen.blit(text, (30, 750))
     while start_screen:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
